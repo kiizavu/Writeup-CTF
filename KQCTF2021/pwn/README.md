@@ -521,5 +521,3 @@ We can enter this payload to get the shell and do anything we want: `__import__(
 ## Flag
 kqctf{0h_h0w_1_w4n7_70_br34k_fr33_e73nfk1788234896a174nc}
 
-
-# ==========================================================================================
