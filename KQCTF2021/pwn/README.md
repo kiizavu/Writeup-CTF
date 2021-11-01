@@ -145,8 +145,6 @@ flag{i_hope_its_still_cool_to_use_1337_for_no_reason}
 
 # Challenge name: zoom2win
 
-### Description
-NamOcCho
 
 ## Pseudocode
 ```c
@@ -265,9 +263,6 @@ kqctf{did_you_zoom_the_basic_buffer_overflow_?}
 # ==========================================================================================
 
 # Challenge name: tweetybirb
-
-### Description
-NamOcCho
 
 ## Pseudocode
 ```c
@@ -453,8 +448,6 @@ kqctf{tweet_tweet_did_you_leak_or_bruteforce_...\_plz_dont_say_you_tried_brutefo
 
 # Challenge name: I want to break free
 
-### Description
-NamOcCho
 
 ## Code
 ```python
@@ -517,7 +510,7 @@ os
 ```
 
 ## Methodology
-The vulnerable in this challenge is at line `print(exec(data))`, this mean the program will execute our input. But our input is filtered by blacklist so we have to bypass it with some tricks like use .lower(), add string, convert string to octal, etc.
+The vulnerable in this challenge is at line `print(exec(data))`, this mean the program will execute our input. But our input is filtered by blacklist so we have to bypass it with some tricks like use .lower(), append string, convert string to octal, etc.
 
 ## Payload
 We can enter this payload to get the shell and do anything we want: `__import__('o'+'s').system('/bin/sh')`
