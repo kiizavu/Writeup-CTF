@@ -341,7 +341,7 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 
 
 ## Methodology
-As we can see this challenge is similar to the previous challenge, but this challenge has stack canary. So we have to detect the canary value to bypass it.
+As we can see this challenge is similar to the zoom2win challenge, but this challenge has stack canary. So we have to detect the canary value to bypass it.
 
 Exploit plan:
 1. Identify offset from our input to `return address` of stack
@@ -377,7 +377,7 @@ According the disassembly code of main we know that this is a Random XOR canary
 
 
 
-We can find the canary value by using %[offset]$p (brute force offset) via the format string vulnerable. Additionally, the canary value ends in 00 and looks very random, unlike the libc and stack addresses that start with f7 and ff
+We can find the canary value by using %[offset]$p (brute force offset) via the format string vulnerable. Additionally, the canary value ends in 00 and looks very random, unlike the libc and stack addresses that start with f7 and ff.
 
 ![image](https://user-images.githubusercontent.com/69805864/139624575-aa3a0467-84e8-47bd-924f-ed165f6de453.png)
 
@@ -446,6 +446,87 @@ Run the code and we wil get the flag
 ## Flag
 kqctf{tweet_tweet_did_you_leak_or_bruteforce_...\_plz_dont_say_you_tried_bruteforce}
 
+
+
+# ==========================================================================================
+
+
+# Challenge name: I want to break free
+
+### Description
+NamOcCho
+
+## Code
+```python
+#!/usr/bin/env python3
+
+def server():
+    message = """
+    You are in jail. Can you escape?
+"""
+    print(message)
+    while True:
+        try:
+            data = input("> ")
+            safe = True
+            for char in data:
+                if not (ord(char)>=33 and ord(char)<=126):
+                    safe = False
+            with open("blacklist.txt","r") as f:
+                badwords = f.readlines()
+            for badword in badwords:
+                if badword in data or data in badword:
+                    safe = False
+            if safe:
+                print(exec(data))
+            else:
+                print("You used a bad word!")
+        except Exception as e:
+            print("Something went wrong.")
+            print(e)
+            exit()
+
+if __name__ == "__main__":
+    server()
+```
+Blacklist
+```
+cat
+grep
+nano
+import
+eval
+subprocess
+input
+sys
+execfile
+builtins
+open
+dict
+exec
+for
+dir
+file
+input
+write
+while
+echo
+print
+int
+os
+```
+
+## Methodology
+The vulnerable in this challenge is at line `print(exec(data))`, this mean the program will execute our input. But our input is filtered by blacklist so we have to bypass it with some tricks like use .lower(), add string, convert string to octal, etc.
+
+## Payload
+We can enter this payload to get the shell and do anything we want: `__import__('o'+'s').system('/bin/sh')`
+
+![image](https://user-images.githubusercontent.com/69805864/139630215-d48d4dbf-b723-4a50-9a5f-3f39afb680cf.png)
+
+
+## Flag
+kqctf{0h_h0w_1_w4n7_70_br34k_fr33_e73nfk1788234896a174nc}
 
 
 # ==========================================================================================
